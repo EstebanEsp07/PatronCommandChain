@@ -1,4 +1,4 @@
-# LOGISTPULSE · Smart Inventory — Patrones Command y Chain of Responsibility
+# LOGISTPULSE · Smart Inventory — Patrones Command, Chain of Responsibility y Strategy
 
 Implementación en Java (17+) del flujo `POST /reservations`:
 
@@ -10,7 +10,8 @@ Command (Reserve) -> Chain (SKU -> stock -> lote -> capacidad) -> Receptor (Inve
 
 ```
 src/main/java/com/logistpulse/
-├── Main.java                  # Cliente
+├── Main.java                  # Cliente (Command + Chain)
+├── StrategyDemo.java          # Cliente (Strategy + Command + Chain)
 ├── model/                     # Lot, Location, LotState
 ├── inventory/Inventory.java   # Receptor (lógica de negocio)
 ├── chain/                     # Chain of Responsibility
@@ -27,9 +28,16 @@ src/main/java/com/logistpulse/
 │   ├── ReleaseCommand.java
 │   ├── AdjustCommand.java
 │   └── TransferCommand.java
-└── invoker/
-    ├── CommandInvoker.java    # Emisor (historial, idempotencia, undo)
-    └── Ledger.java            # Auditoría
+├── invoker/
+│   ├── CommandInvoker.java    # Emisor (historial, idempotencia, undo)
+│   └── Ledger.java            # Auditoría
+└── strategy/                  # Strategy
+    ├── PickingPolicy.java     #   interfaz estrategia
+    ├── FefoPolicy.java        #   estrategia concreta: vence primero, sale primero
+    ├── FifoPolicy.java        #   estrategia concreta: ingresa primero, sale primero
+    ├── LifoPolicy.java        #   estrategia concreta: ingresa último, sale primero
+    ├── Picking.java           #   contexto
+    └── Allocation.java        #   resultado del plan (lote + cantidad)
 ```
 
 ## Roles del patrón Command
@@ -42,11 +50,24 @@ src/main/java/com/logistpulse/
 | Receptor | `Inventory` |
 | Cliente | `Main` |
 
+## Roles del patrón Strategy
+
+| Rol | Clase |
+|---|---|
+| Contexto | `Picking` |
+| Interfaz estrategia | `PickingPolicy` |
+| Estrategias concretas | `FefoPolicy`, `FifoPolicy`, `LifoPolicy` |
+| Cliente | `StrategyDemo` |
+
+`Picking.plan(sku, qty)` no modifica el inventario: devuelve una lista de `Allocation` que el cliente
+convierte en `ReserveCommand`, de modo que cada reserva pasa por la cadena de validación.
+
 ## Compilar y ejecutar
 
 ```bash
 javac -d out $(find src -name "*.java")
-java -cp out com.logistpulse.Main
+java -cp out com.logistpulse.Main          # Command + Chain
+java -cp out com.logistpulse.StrategyDemo  # Strategy
 ```
 
 En Windows (PowerShell):
